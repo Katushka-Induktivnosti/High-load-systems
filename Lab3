@@ -1,67 +1,78 @@
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/0.PNG
+
 Task 1
 
 MATCH (a:Item)-[r:Add]->(b)
 WHERE b.number = '0001'
 RETURN a,b
-
-![Image alt] (https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/0.PNG)
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/1.PNG
 
 Task 2
 
 MATCH (a)-[r:Add]->(b:Order)
 WHERE b.number = '0005'
 RETURN sum(a.price)
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/2.PNG
 
 Task 3
 
 MATCH (a:Customer)-[r:Buy]->(b)
 WHERE a.name = 'Kate'
 RETURN a,b
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/3.PNG
 
 Task 4
 
 MATCH (c:Item)-[r1:Add]->(b:Order),(a:Customer)-[r2:Buy]->(b)
 WHERE a.name = 'Kate'
 RETURN a,b,c
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/4.PNG
 
 Task 5
 
 MATCH (c:Item)-[r1:Add]->(b:Order),(a:Customer)-[r2:Buy]->(b)
 WHERE a.name = 'Catherine'
 RETURN count(c)
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/5.PNG
 
 Task 6
 
 MATCH (c:Item)-[r1:Add]->(b:Order),(a:Customer)-[r2:Buy]->(b)
 WHERE a.name = 'Catherine'
 RETURN (sum(c.price))
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/6.PNG
 
 Task 7
 
 MATCH (a:Item)-[r:Add]->(b:Order)
 RETURN a.model, COUNT(r) 
 ORDER BY COUNT(r) DESC
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/7.PNG
 
 Task 8
 
 MATCH (a:Customer)-[r:View]->(b:Item)
 WHERE a.name = 'Katerina'
 RETURN a,b
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/8.PNG
 
 Task 9
 
 MATCH (a:Item)-[r:Add]->(b:Order)
 WHERE a.model = 'Galaxy Fold'
 RETURN (b:Order)<-[:Add]-(:Item)
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/9.PNG
 
 Task 10
 
 MATCH (a:Item)-[r1:Add]->(b:Order),(c:Customer)-[r2:View]->(a:Item)
 WHERE a.model = 'Redmi'
 RETURN c
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/10.PNG
 
 Task 11
 
 MATCH (a:Customer)-[r:View]->(b:Item)
 WHERE a.name = 'Yekatierina' AND NOT (b:Item)-[:Add]->(:Order)
 RETURN a,b
+https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/11.PNG

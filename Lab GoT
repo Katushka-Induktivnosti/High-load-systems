@@ -67,10 +67,3 @@ Command 14
 MATCH (b:House)
 WHERE b.name CONTAINS "Qoherys"
 return b
-
-<img
-src=“https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/0.PNG”
-raw=true
-alt=“Subject Pronouns”
-style=“margin-right: 10px;”
-/>

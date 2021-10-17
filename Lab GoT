@@ -69,7 +69,4 @@ WHERE b.name CONTAINS "Qoherys"
 return b
 
 
-
-image:https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/1.PNG[
-"My screenshot",width=128,
-link="https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/1.PNG"
+image::https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/1.PNG

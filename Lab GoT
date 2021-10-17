@@ -68,4 +68,9 @@ MATCH (b:House)
 WHERE b.name CONTAINS "Qoherys"
 return b
 
-<img width=“964” alt=“java 8 and prio java 8  array review example” src=“https://github.com/jaimehernan95/arrayReview-java/blob/master/images/%20arrayExample.png 23”>
+<img
+src=“https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/0.PNG”
+raw=true
+alt=“Subject Pronouns”
+style=“margin-right: 10px;”
+/>

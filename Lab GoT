@@ -67,6 +67,3 @@ Command 14
 MATCH (b:House)
 WHERE b.name CONTAINS "Qoherys"
 return b
-
-
-image::https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/1.PNG

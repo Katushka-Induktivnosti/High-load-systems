@@ -1,0 +1,200 @@
+Task 1, 2
+
+# nodetool status
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  172.18.0.4  122.9 KiB   16      35.7%             eb2f359d-ab29-43aa-adda-efff49384f9b  rack1
+UN  172.18.0.3  319.69 KiB  16      31.6%             7a05e4a3-bab8-4c19-b169-769570700475  rack1
+UN  172.18.0.2  283.7 KiB   16      32.7%             94a82824-8bcb-4eb9-a353-a103df5947e6  rack1
+
+Task 3
+
+cqlsh> create keyspace space1 with replication = {'class':'SimpleStrategy', 'replication_factor':1};
+cqlsh> create keyspace space2 with replication = {'class':'SimpleStrategy', 'replication_factor':2};
+cqlsh> create keyspace space3 with replication = {'class':'SimpleStrategy', 'replication_factor':3};
+
+Task 4
+
+cqlsh> use space1;
+cqlsh:space1> CREATE TABLE items (id int, category text, model text, producer text, price int, features map<text,text>, PRIMARY KEY(category, price));
+
+cqlsh> use space2;
+cqlsh:space2> CREATE TABLE orders (id int, customer tuple <text, text>, time timestamp, total_price int, items list <text>, PRIMARY KEY(name, total_price));
+
+cqlsh> use space3;
+cqlsh:space3> CREATE TABLE customers (id int, name text, surname text, date_of_birth
+ date, card_number text, PRIMARY KEY(surname, card_number));
+
+Task 5
+
+Node 172.18.0.2
+cqlsh> use space1;
+cqlsh:space1> INSERT INTO items (id, category, model, producer, price) VALUES (1, 'Phone', 'iPhone 12', 'Apple', 600);
+cqlsh:space1> SELECT * FROM items;
+
+ category | price | features | id | model     | producer
+----------+-------+----------+----+-----------+----------
+    Phone |   600 |     null |  1 | iPhone 12 |    Apple
+
+(1 rows)
+
+
+Node 172.18.0.3
+cqlsh> use space2;
+cqlsh:space2> INSERT INTO orders (id, customer, time, total_price, items) VALUES (1, ('Yekatierina','Churakova'), '2021-09-08T11:21:59', 1100, ['Galaxy Fold','Series 6']);
+cqlsh:space2> SELECT * FROM orders;
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+
+(1 rows)
+
+Node 172.18.0.4
+cqlsh> use space3;
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Yekatierina', '1999-10-04', 1, '12345678');
+cqlsh:space3> SELECT * FROM customers;
+
+ surname   | card_number | date_of_birth | id | name
+-----------+-------------+---------------+----+-------------
+ Churakova |    12345678 |    1999-10-04 |  1 | Yekatierina
+
+(1 rows)
+
+Task 6
+
+# nodetool status space1;
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  172.18.0.4  263.98 KiB  16      35.7%             eb2f359d-ab29-43aa-adda-efff49384f9b  rack1
+UN  172.18.0.3  236.94 KiB  16      31.6%             7a05e4a3-bab8-4c19-b169-769570700475  rack1
+UN  172.18.0.2  243.76 KiB  16      32.7%             94a82824-8bcb-4eb9-a353-a103df5947e6  rack1
+
+# nodetool status space2;
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  172.18.0.4  263.98 KiB  16      76.0%             eb2f359d-ab29-43aa-adda-efff49384f9b  rack1
+UN  172.18.0.3  236.94 KiB  16      59.3%             7a05e4a3-bab8-4c19-b169-769570700475  rack1
+UN  172.18.0.2  243.76 KiB  16      64.7%             94a82824-8bcb-4eb9-a353-a103df5947e6  rack1
+
+# nodetool status space3;
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  172.18.0.4  263.98 KiB  16      100.0%            eb2f359d-ab29-43aa-adda-efff49384f9b  rack1
+UN  172.18.0.3  236.94 KiB  16      100.0%            7a05e4a3-bab8-4c19-b169-769570700475  rack1
+UN  172.18.0.2  243.76 KiB  16      100.0%            94a82824-8bcb-4eb9-a353-a103df5947e6  rack1
+
+Task 7
+
+# nodetool getendpoints space1 items 'Phone'
+172.18.0.2
+# nodetool getendpoints space2 orders 1100
+172.18.0.4
+172.18.0.3
+# nodetool getendpoints space3 customers 'Churakova'
+172.18.0.4
+172.18.0.3
+172.18.0.2
+
+Task 8
+
+cqlsh> use space1;
+cqlsh:space1> SELECT * FROM items;
+NoHostAvailable: ('Unable to complete the operation against any hosts', {<Host: 127.0.0.1:9042 datacenter1>: Unavailable('Error from server: code=1000 [Unavailable exception] message="Cannot achieve consistency level ONE" info={\'consistency\': \'ONE\', \'required_replicas\': 1, \'alive_replicas\': 0}')})
+cqlsh:space1> use space2;
+cqlsh:space2> SELECT * FROM orders;
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+
+(1 rows)
+cqlsh:space2> use space3;
+cqlsh:space3> SELECT * FROM customers;
+
+ surname   | card_number | date_of_birth | id | name
+-----------+-------------+---------------+----+-------------
+ Churakova |    12345678 |    1999-10-04 |  1 | Yekatierina
+
+(1 rows)
+
+cqlsh:space3> use space1;
+cqlsh:space1> INSERT INTO items (id, category, model, producer, price) VALUES (1, 'Phone', 'iPhone 12', 'Apple', 600);
+cqlsh:space1> use space2;
+cqlsh:space2> INSERT INTO orders (id, customer, time, total_price, items) VALUES (1, ('Yekatierina','Churakova'), '2021-09-08T11:21:59', 1100, ['Galaxy Fold','Series 6']);
+cqlsh:space2> use space3;
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Yekatierina', '1999-10-04', 1, '12345678');
+cqlsh:space3>
+
+For a 3-node cluster with 1 node inactive READ operation is unavailable for replication level 1, WRITE operation is successfully performed for all replication levels.
+
+Task 9
+
+PS C:\WINDOWS\system32> docker network disconnect net cassandra3
+PS C:\WINDOWS\system32> docker network disconnect net cassandra2
+PS C:\WINDOWS\system32> docker network disconnect net cassandra1
+
+# nodetool status
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns  Host ID                               Rack
+DN  172.18.0.4  193.75 KiB  16      ?     eb2f359d-ab29-43aa-adda-efff49384f9b  rack1
+DN  172.18.0.3  189.76 KiB  16      ?     7a05e4a3-bab8-4c19-b169-769570700475  rack1
+UN  172.18.0.2  186.51 KiB  16      ?     94a82824-8bcb-4eb9-a353-a103df5947e6  rack1
+
+Note: Non-system keyspaces don't have the same replication settings, effective ownership information is meaningless
+
+Task 10
+
+cqlsh:space3> CONSISTENCY;
+Current consistency level is ONE
+
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Catherine', '1999-10-04', 2, '12345678');
+
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Katia', '1999-10-04', 3, '12345678');
+
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Kate', '1999-10-04', 4, '12345678');
+
+Task 11
+
+PS C:\WINDOWS\system32> docker network connect net cassandra1
+PS C:\WINDOWS\system32> docker network connect net cassandra2
+PS C:\WINDOWS\system32> docker network connect net cassandra3
+
+cqlsh:space3> SELECT * FROM customers;
+
+ surname   | card_number | date_of_birth | id | name
+-----------+-------------+---------------+----+-------------
+Churakova |    81726354 |    1999-10-04 |  4 |        Kate
+
+The latest entry was chosen.
+
+Task 12
+
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Catherine', '1999-10-04', 2, '12345678') IF NOT EXISTS;
+
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Katia', '1999-10-04', 3, '12345678') IF NOT EXISTS;
+
+cqlsh:space3> INSERT INTO customers (surname, name, date_of_birth, id, card_number) VALUES ('Churakova', 'Kate', '1999-10-04', 4, '12345678') IF NOT EXISTS;
+
+cqlsh:space3> SELECT * FROM customers;
+
+ surname   | card_number | date_of_birth | id | name
+-----------+-------------+---------------+----+-------------
+ Churakova |    12345678 |    1999-10-04 |  1 | Yekatierina
+
+The existing entry was not rewritten.

@@ -1,0 +1,136 @@
+Task 1&2
+
+root@c75a844a6bf0:/# hadoop fs -copyFromLocal UofS_access_log /
+2021-10-25 20:43:35,543 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+2021-10-25 20:43:36,556 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+root@c75a844a6bf0:/# hadoop fs -ls /
+Found 2 items
+-rw-r--r--   3 root supergroup  233440918 2021-10-25 20:43 /UofS_access_log
+drwxr-xr-x   - root supergroup          0 2021-10-25 20:38 /rmstate
+
+Task 3.1
+
+>>> from pyspark import SparkContext, SparkConf
+>>> from collections import Counter
+>>> import re
+>>> conf = SparkConf().setAppName("Lab2_adv").setMaster("local")
+>>> sc = SparkContext(conf=conf)
+2021-10-26 12:54:05,086 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+/usr/local/lib/python2.7/dist-packages/pyspark/context.py:227: DeprecationWarning: Support for Python 2 and Python 3 prior to version 3.6 is deprecated as of Spark 3.0. See also the plan for dropping Python 2 support at https://spark.apache.org/news/plan-for-dropping-python-2-support.html.
+  DeprecationWarning)
+>>> log_data = sc.textFile("hdfs:///UofS_access_log")
+>>> log_data.first()
+u'202.32.92.47 - - [01/Jun/1995:00:00:59 -0600] "GET /~scottp/publish.html" 200 271'
+>>> def exclude(rawText):
+...     x = r'.{0,}("GET).{0,}\s/|.{0,}("POST)\s/'
+...     y = r'\s.{0,}|"{0,}'
+...     res = re.findall(x, rawText)
+...     if len(res)>0:
+...         rawText = re.sub(x,'', rawText)
+...         rawText = re.sub(y,'', rawText)
+...     return rawText
+...
+>>> count = log_data.filter(lambda x: 'image' not in x).map(lambda x: exclude(x)).countByValue()
+>>> top_ranks = sc.parallelize(list(count.iteritems()), numSlices = 40).collect()
+>>> top_ranks.sort(key = lambda x: x[1],reverse = True)
+>>> top10 = top_ranks[1:11]
+>>> print(top10)
+[(u'~scottp/free.html', 78486), (u'cgi-bin/hytelnet', 32526), (u'~scottp/freetel.html', 22930), (u'~scottp/free.html/', 22200), (u'~scottp/fn1.gif', 21064), (u'~scottp/freewww.html', 19885), (u'~lowey/encyclopedia/index.html', 18867), (u'departments.html', 16293), (u'search/people_uofs.html', 15340), (u'~lowey/encyclopedia/icons/kevhead.gif', 14911)]
+>>> task31 = sc.parallelize(top10).saveAsSequenceFile("task31")
+
+root@c75a844a6bf0:/# hdfs dfs -ls
+Found 1 items
+drwxr-xr-x   - root supergroup          0 2021-10-26 12:48 task31
+
+Task 3.2
+
+>>>def exclude(rawText):
+...     x = r'\s.{0,}".{0,}"\s{0,}\s\d{0,}'
+...     res = re.findall(x, rawText)
+...     if len(res)>0:
+...         rawText = re.sub(x,'', rawText)
+...         rawText = re.split(r'\s', rawText)
+...         try:
+...             rawText[1] = int(rawText[1])
+…            rawText[0] = str(rawText[0])
+...         except:
+...             rawText[1] = 0
+…            rawText[0] = str(rawText[0])
+...     return rawText
+...
+>>> def clear (list, *args):
+...     res=[]
+...     for el in list:
+...         if isinstance(el[0], unicode) == True:
+...             res.append(el)
+...     return(res)
+...
+>>> count = log_data.filter(lambda x: '" 200' in x).map(lambda x: exclude(x)).collect()
+>>> res = dict()
+>>> for el in count:
+...     res[el[0]] = res.get(el[0], 0) + int(el[1])
+...
+>>> Counter(r).most_common(10)
+[('freenet.buffalo.edu', 305054357), ('duke.usask.ca', 274850271), ('broadway.sfn.saskatoon.sk.ca', 135494706), ('ccn.cs.dal.ca', 115300684), ('srv1.freenet.calgary.ab.ca', 111176474), ('sask.usask.ca', 101346902), ('sailor.lib.md.us', 82896472), ('www.gnofn.org', 80557012), ('sendit.sendit.nodak.edu', 74408693), ('huey.usask.ca', 63100477)]
+>>> task32 = sc.parallelize(Counter(r).most_common(10)).saveAsSequenceFile("task32")
+
+Task 3.3
+
+>>> def exclude(rawText):
+...     x = r'.{0,}cgi-bin.{0,}"\s\d{0,}\s'
+...     rawNum = 0
+...     res = re.findall(x, rawText)
+...     if len(res)==1:
+...         rawText = re.sub(x,'', rawText)
+...         try:
+...             rawNum = int(rawText)
+...         except:
+...             return rawNum
+...         finally:
+...             return rawNum
+...
+>>> count = log_data.filter(lambda x: 'cgi-bin' in x).map(lambda x: exclude(x)).sum()
+>>> print(count)
+588258429
+>>> cgi_data = [('cgi-bin',count)]
+>>> task33 = sc.parallelize(cgi_data).saveAsSequenceFile("task33")
+
+Task 3.4
+
+>>> def exclude(rawText):
+...     x = r'.{0,}cgi-bin.{0,}='
+...     y = r'\sHTTP.{0,}'
+...     res = re.findall(x, rawText)
+...     if len(res)>0:
+...         rawText = re.sub(x,'', rawText)
+...         rawText = re.sub(y,'', rawText)
+...     return rawText
+...
+>>> count = log_data.filter(lambda x: '/cgi-bin/cusi?query' in x).map(lambda x: exclude(x)).collect()
+>>> res = Counter(count)
+>>> res.most_common(10)
+[(u'http%3A%2F%2Fcuiwww.unige.ch%2Fw3catalog%3F_cusi-search-term-here_', 2969), (u'http%3A%2F%2Fwebcrawler.com%2Fcgi-bin%2FWebQuery%3F_cusi-search-term-here_', 1057), (u'http%3A%2F%2Fsearch.yahoo.com%2Fbin%2Fsearch%3Fp%3D_cusi-search-term-here_%26t%3Don%26u%3Don%26c%3Don%26s%3Da%26w%3Ds%26l%3D100', 914), (u'gopher%3A%2F%2Fds.internic.net%3A4320%2F7netfind%2520dblookup%3F_cusi-search-term-here_', 782), (u'http%3A%2F%2Fwebcrawler.cs.washington.edu%2Fcgi-bin%2FWebQuery%3F_cusi-search-term-here_', 666), (u'http%3A%2F%2Fweb.nexor.co.uk%2Fpublic%2Farchie%2Farchieplex%2Fcgi-bin%2Farchieplexsimple%3F_cusi-search-term-here_', 617), (u'http%3A%2F%2Fquery3.lycos.cs.cmu.edu%2Fcgi-bin%2Fpursuit%3F_cusi-search-term-here_', 531), (u'http%3A%2F%2Fweb.nexor.co.uk%2Fpublic%2Faliweb%2Fsearch%2Fcgi-bin%2Fform%3Fquery%3D_cusi-search-term-here_%26searchtype%3DSubstring%26types%3DAny%26titlefield%3Don%26descriptionfield%3Don%26keywordfield%3Don%26showdescription%3Don%26domain%3D%26hits%3D', 360), (u'http%3A%2F%2Fwww.lycos.com%2Fcgi-bin%2Fnph-randurl%2Fcgi-bin%2Flargehostpursuit1.html%3F_cusi-search-term-here_', 355), (u'http%3A%2F%2Fnearnet.gnn.com%2Fwic%2Fnewrescat.toc.html%3F_cusi-search-term-here_', 338)]
+>>> task34_1 = sc.parallelize(res.most_common(10)).saveAsSequenceFile("task34(1)")
+>>> def exclude(rawText):
+...     x = r'\s-\s-.{0,}'
+...     res = re.findall(x, rawText)
+...     if len(res)>0:
+...         rawText = re.sub(x,'', rawText)
+...     return rawText
+...
+>>> count = log_data.filter(lambda x: '/cgi-bin/cusi?query' in x).map(lambda x: exclude(x)).collect()
+>>> res.most_common(10)
+[(u'george.sedsystems.ca', 261), (u'citadel.tor.onramp.ca', 234), (u'ts7.enterprise.ca', 179), (u'156.26.162.9', 152), (u'mac18.multimedia.edu', 140), (u'learn.senecac.on.ca', 130), (u'duke.usask.ca', 111), (u'tuzo.erin.utoronto.ca', 104), (u'hills.ccsf.cc.ca.us', 89), (u'disarray.demon.co.uk', 79)]
+>>> task34_2 = sc.parallelize(res.most_common(10)).saveAsSequenceFile("task34(2)")
+
+HDFS
+
+root@c75a844a6bf0:/# hdfs dfs -ls
+Found 5 items
+drwxr-xr-x   - root supergroup          0 2021-10-26 12:48 task31
+drwxr-xr-x   - root supergroup          0 2021-10-29 13:06 task32
+drwxr-xr-x   - root supergroup          0 2021-10-26 17:25 task33
+drwxr-xr-x   - root supergroup          0 2021-10-29 20:35 task34(1)
+drwxr-xr-x   - root supergroup          0 2021-10-29 20:49 task34(2)

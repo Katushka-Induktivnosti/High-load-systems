@@ -1,0 +1,353 @@
+# nodetool status
+Datacenter: datacenter1
+=======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  172.18.0.3  327.78 KiB  16      51.2%             7a05e4a3-bab8-4c19-b169-769570700475  rack1
+UN  172.18.0.2  282.39 KiB  16      48.8%             94a82824-8bcb-4eb9-a353-a103df5947e6  rack1
+
+Task 1.1
+
+> DESCRIBE TABLE items;
+
+CREATE TABLE space1.items (
+    category text,
+    price int,
+    model text,
+    id int,
+    producer text,
+    features map<text, text>,
+    PRIMARY KEY (category, price, model)
+) 
+    AND additional_write_policy = '99p'
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND cdc = false
+    AND comment = ''
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '16', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND crc_check_chance = 1.0
+    AND default_time_to_live = 0
+    AND extensions = {}
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair = 'BLOCKING'
+    AND speculative_retry = '99p';
+
+CREATE INDEX features_indx ON space1.items (values(features));
+
+CREATE INDEX features_indx_key ON space1.items (keys(features));
+
+CREATE INDEX producer_indx ON space1.items (producer);
+
+Task 1.2
+
+> SELECT * FROM items WHERE category = 'Phone' ORDER BY price DESC;
+
+ category | price | features | id | model       | producer
+----------+-------+----------+----+-------------+----------
+    Phone |   750 |     null |  2 | Galaxy Fold |  Samsung
+    Phone |   600 |     null |  1 |   iPhone 12 |    Apple
+    Phone |   300 |     null |  3 |  Redmi Note |   Xiaomi
+
+Task 1.3
+
+> SELECT * FROM items WHERE category = 'TV' AND price = 400 AND model = 'ThinQ';
+
+ category | price | features           | id | model | producer
+----------+-------+--------------------+----+-------+----------
+       TV |   400 | {'diagonal': '55'} |  4 | ThinQ |       LG
+
+> SELECT * FROM items WHERE category = 'Smart Watch' AND price < 340 AND price >
+240;
+
+ category    | price | model | features          | id | producer
+-------------+-------+-------+-------------------+----+----------
+ Smart Watch |   250 |   Fit | {'color': 'pink'} |  9 |   Huawei
+
+> SELECT * FROM items WHERE category = 'Phone' AND price = 600 AND producer = 'Apple';
+
+ category | price | features | id | model     | producer
+----------+-------+----------+----+-----------+----------
+    Phone |   600 |     null |  1 | iPhone 12 |    Apple
+
+Task 1.4
+
+> SELECT * FROM items WHERE features CONTAINS KEY 'diagonal';
+
+ category | price | features           | id | model      | producer
+----------+-------+--------------------+----+------------+----------
+       TV |   400 | {'diagonal': '55'} |  4 |      ThinQ |       LG
+       TV |   450 | {'diagonal': '50'} |  6 | MotionFlow |     Sony
+       TV |   550 | {'diagonal': '65'} |  5 |    Crystal |  Samsung
+
+> SELECT * FROM items WHERE features CONTAINS 'blue';
+
+ category    | price | features          | id | model    | producer
+-------------+-------+-------------------+----+----------+----------
+ Smart Watch |   350 | {'color': 'blue'} |  8 | Series 6 |    Apple
+
+Task 1.5
+
+> UPDATE items SET producer = 'Samsung Inc' WHERE category = 'TV' AND producer = 'Samsung';
+> UPDATE items SET producer = 'Samsung Inc' WHERE category = 'Phone' AND producer = 'Samsung';
+> UPDATE items SET producer = 'Samsung Inc' WHERE category = 'Smart Watch' AND producer = 'Samsung';
+> SELECT * FROM items;
+
+ category    | price | features           | id | model        | producer
+-------------+-------+--------------------+----+--------------+-------------
+       Phone |   300 |               null |  3 |   Redmi Note |      Xiaomi
+       Phone |   600 |               null |  1 |    iPhone 12 |       Apple
+       Phone |   750 |               null |  2 |  Galaxy Fold | Samsung Inc
+ Smart Watch |   250 |  {'color': 'pink'} |  9 |          Fit |      Huawei
+ Smart Watch |   300 |  {'color': 'grey'} |  7 | Galaxy Watch | Samsung Inc
+ Smart Watch |   350 |  {'color': 'blue'} |  8 |     Series 6 |       Apple
+          TV |   400 | {'diagonal': '55'} |  4 |        ThinQ |          LG
+          TV |   450 | {'diagonal': '50'} |  6 |   MotionFlow |        Sony
+          TV |   550 | {'diagonal': '65'} |  5 |      Crystal | Samsung Inc
+
+> UPDATE items SET features = {'OS':'IOS'} WHERE category = 'Phone' AND price = 600;
+> UPDATE items SET features = {'OS':'Android'} WHERE category = 'Phone' AND price = 750;
+> UPDATE items SET features = {'OS':'Android'} WHERE category = 'Phone' AND price = 300;
+> SELECT * FROM items;
+
+ category    | price | features           | id | model        | producer
+-------------+-------+--------------------+----+--------------+-------------
+       Phone |   300 |  {'OS': 'Android'} |  3 |   Redmi Note |      Xiaomi
+       Phone |   600 |      {'OS': 'IOS'} |  1 |    iPhone 12 |       Apple
+       Phone |   750 |  {'OS': 'Android'} |  2 |  Galaxy Fold | Samsung Inc
+ Smart Watch |   250 |  {'color': 'pink'} |  9 |          Fit |      Huawei
+ Smart Watch |   300 |  {'color': 'grey'} |  7 | Galaxy Watch | Samsung Inc
+ Smart Watch |   350 |  {'color': 'blue'} |  8 |     Series 6 |       Apple
+          TV |   400 | {'diagonal': '55'} |  4 |        ThinQ |          LG
+          TV |   450 | {'diagonal': '50'} |  6 |   MotionFlow |        Sony
+          TV |   550 | {'diagonal': '65'} |  5 |      Crystal | Samsung Inc
+
+>DELETE features FROM items WHERE category = 'TV' IF EXISTS;
+
+ [applied]
+-----------
+      True
+
+Task 2.1
+
+> DESCRIBE TABLE orders;
+
+CREATE TABLE lab4.orders (
+    customer frozen<tuple<text, text>>,
+    time timestamp,
+    id int,
+    total_price int,
+    items list<text>,
+    PRIMARY KEY (customer, time)
+) 
+    AND additional_write_policy = '99p'
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND cdc = false
+    AND comment = ''
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '16', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND crc_check_chance = 1.0
+    AND default_time_to_live = 0
+    AND extensions = {}
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair = 'BLOCKING'
+    AND speculative_retry = '99p';
+
+CREATE INDEX items_indx ON lab4.orders (values(items));
+
+CREATE INDEX price_indx ON lab4.orders (total_price);
+
+CREATE INDEX time_indx ON lab4.orders (time);
+
+Task 2.2
+
+> SELECT * FROM orders WHERE customer = ('Yekatierina','Churakova') ORDER BY time DESC;
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+ ('Yekatierina', 'Churakova') | 2021-09-23 15:46:34.000000+0000 |  2 |             ['Motion Flow'] |         450
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+
+Task 2.3
+
+> SELECT * FROM orders WHERE customer = ('Yekatierina','Churakova') AND items CONTAINS 'Series 6';
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+
+Task 2.4
+
+> SELECT * FROM orders WHERE customer = ('Kate','Burbela') AND time < '2021-10-30' AND time > '2021-08-30';
+
+ customer            | time                            | id | items                     | total_price
+---------------------+---------------------------------+----+---------------------------+-------------
+ ('Kate', 'Burbela') | 2021-10-02 07:50:00.000000+0000 |  4 |                   ['Fit'] |         250
+ ('Kate', 'Burbela') | 2021-09-28 22:07:15.000000+0000 |  3 | ['iPhone 12', 'Series 6'] |         950
+
+> SELECT COUNT(*) FROM orders WHERE customer = ('Kate','Burbela') AND time < '2021-10-30' AND time > '2021-08-30';
+
+ count
+-------
+     2
+
+Task 2.5
+
+> SELECT AVG(total_price) FROM orders WHERE customer = ('Katerina','Soldatova');
+
+ system.avg(total_price)
+-------------------------
+                     500
+
+> SELECT AVG(total_price) FROM orders WHERE customer = ('Kate','Burbela');
+
+ system.avg(total_price)
+-------------------------
+                     600
+
+> SELECT AVG(total_price) FROM orders WHERE customer = ('Yekatierina','Churakova');
+
+ system.avg(total_price)
+-------------------------
+                     775
+
+Task 2.6
+
+> SELECT SUM(total_price) FROM orders WHERE customer = ('Katerina','Soldatova');
+
+ system.sum(total_price)
+-------------------------
+                    1000
+
+> SELECT SUM(total_price) FROM orders WHERE customer = ('Kate','Burbela');
+
+ system.sum(total_price)
+-------------------------
+                    1200
+
+> SELECT SUM(total_price) FROM orders WHERE customer = ('Yekatierina','Churakova');
+
+ system.sum(total_price)
+-------------------------
+                    1550
+
+Task 2.7
+
+> SELECT MAX(total_price) FROM orders WHERE customer = ('Katerina','Soldatova');
+
+ system.max(total_price)
+-------------------------
+                     700
+
+> SELECT MAX(total_price) FROM orders WHERE customer = ('Kate','Burbela');
+
+ system.max(total_price)
+-------------------------
+                     950
+
+> SELECT MAX(total_price) FROM orders WHERE customer = ('Yekatierina','Churakova');
+
+ system.max(total_price)
+-------------------------
+                    1100
+
+Task 2.8
+
+> SELECT * FROM orders;
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+          ('Kate', 'Burbela') | 2021-10-02 07:50:00.000000+0000 |  4 |                     ['Fit'] |         250
+          ('Kate', 'Burbela') | 2021-09-28 22:07:15.000000+0000 |  3 |   ['iPhone 12', 'Series 6'] |         950
+ ('Yekatierina', 'Churakova') | 2021-09-23 15:46:34.000000+0000 |  2 |             ['Motion Flow'] |         450
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+   ('Catherine', 'Sidorenko') | 2021-10-01 20:12:22.000000+0000 |  7 |               ['iPhone 12'] |         600
+    ('Katerina', 'Soldatova') | 2021-10-24 09:32:56.000000+0000 |  6 |            ['Galaxy Watch'] |         300
+    ('Katerina', 'Soldatova') | 2021-10-12 16:18:04.000000+0000 |  5 |          ['Redmi', 'ThinQ'] |         700
+> UPDATE orders SET items = ['iPhone 12', 'Series 6'], total_price = 950 WHERE customer = ('Catherine', 'Sidorenko') and time = '2021-10-01';
+cqlsh:lab4> SELECT * FROM orders;
+
+ customer                     | time                            | id   | items                       | total_price
+------------------------------+---------------------------------+------+-----------------------------+-------------
+          ('Kate', 'Burbela') | 2021-10-02 07:50:00.000000+0000 |    4 |                     ['Fit'] |         250
+          ('Kate', 'Burbela') | 2021-09-28 22:07:15.000000+0000 |    3 |   ['iPhone 12', 'Series 6'] |         950
+ ('Yekatierina', 'Churakova') | 2021-09-23 15:46:34.000000+0000 |    2 |             ['Motion Flow'] |         450
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |    1 | ['Galaxy Fold', 'Series 6'] |        1100
+   ('Catherine', 'Sidorenko') | 2021-10-01 20:12:22.000000+0000 |    7 |               ['iPhone 12'] |         600
+   ('Catherine', 'Sidorenko') | 2021-10-01 00:00:00.000000+0000 | null |   ['iPhone 12', 'Series 6'] |         950
+    ('Katerina', 'Soldatova') | 2021-10-24 09:32:56.000000+0000 |    6 |            ['Galaxy Watch'] |         300
+    ('Katerina', 'Soldatova') | 2021-10-12 16:18:04.000000+0000 |    5 |          ['Redmi', 'ThinQ'] |         700
+
+Task 2.9
+
+> SELECT customer, items, time, WRITETIME(total_price) FROM orders;
+
+ customer                     | items                       | time                            | writetime(total_price)
+------------------------------+-----------------------------+---------------------------------+------------------------
+          ('Kate', 'Burbela') |                     ['Fit'] | 2021-10-02 07:50:00.000000+0000 |       1634370451422395
+          ('Kate', 'Burbela') |   ['iPhone 12', 'Series 6'] | 2021-09-28 22:07:15.000000+0000 |       1634370429052089
+ ('Yekatierina', 'Churakova') |             ['Motion Flow'] | 2021-09-23 15:46:34.000000+0000 |       1634370406785113
+ ('Yekatierina', 'Churakova') | ['Galaxy Fold', 'Series 6'] | 2021-09-08 11:21:59.000000+0000 |       1634370390433425
+    ('Katerina', 'Soldatova') |            ['Galaxy Watch'] | 2021-10-24 09:32:56.000000+0000 |       1634370491097736
+    ('Katerina', 'Soldatova') |          ['Redmi', 'ThinQ'] | 2021-10-12 16:18:04.000000+0000 |       1634370470447277
+
+Task 2.10
+
+cqlsh:lab4> INSERT INTO orders (id, customer, time, total_price, items) VALUES (5, ('Cathrine','Sidorenko'), '2021-10-12T16:18:04', 700, ['Redmi','ThinQ']) USING TTL 30;
+cqlsh:lab4> SELECT * FROM orders;
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+          ('Kate', 'Burbela') | 2021-10-02 07:50:00.000000+0000 |  4 |                     ['Fit'] |         250
+          ('Kate', 'Burbela') | 2021-09-28 22:07:15.000000+0000 |  3 |   ['iPhone 12', 'Series 6'] |         950
+ ('Yekatierina', 'Churakova') | 2021-09-23 15:46:34.000000+0000 |  2 |             ['Motion Flow'] |         450
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+    ('Cathrine', 'Sidorenko') | 2021-10-12 16:18:04.000000+0000 |  5 |          ['Redmi', 'ThinQ'] |         700
+    ('Katerina', 'Soldatova') | 2021-10-24 09:32:56.000000+0000 |  6 |            ['Galaxy Watch'] |         300
+    ('Katerina', 'Soldatova') | 2021-10-12 16:18:04.000000+0000 |  5 |          ['Redmi', 'ThinQ'] |         700
+
+(7 rows)
+cqlsh:lab4> SELECT * FROM orders;
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+          ('Kate', 'Burbela') | 2021-10-02 07:50:00.000000+0000 |  4 |                     ['Fit'] |         250
+          ('Kate', 'Burbela') | 2021-09-28 22:07:15.000000+0000 |  3 |   ['iPhone 12', 'Series 6'] |         950
+ ('Yekatierina', 'Churakova') | 2021-09-23 15:46:34.000000+0000 |  2 |             ['Motion Flow'] |         450
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+    ('Katerina', 'Soldatova') | 2021-10-24 09:32:56.000000+0000 |  6 |            ['Galaxy Watch'] |         300
+    ('Katerina', 'Soldatova') | 2021-10-12 16:18:04.000000+0000 |  5 |          ['Redmi', 'ThinQ'] |         700
+
+(6 rows)
+
+Task 2.11
+
+> SELECT JSON * FROM orders WHERE customer = ('Yekatierina','Churakova');
+
+ [json]
+----------------------------------------------------------------------------------------------------------------------------------------------------
+              {"customer": ["Yekatierina", "Churakova"], "time": "2021-09-23 15:46:34.000Z", "id": 2, "items": ["Motion Flow"], "total_price": 450}
+ {"customer": ["Yekatierina", "Churakova"], "time": "2021-09-08 11:21:59.000Z", "id": 1, "items": ["Galaxy Fold", "Series 6"], "total_price": 1100}
+
+Task 2.12
+
+> INSERT INTO orders JSON '{"customer": ["Catherine", "Sidorenko"], "time": "2021-10-01 20:12:22.000Z", "id": 7, "items": ["iPhone 12"], "total_price": 600}';
+cqlsh:lab4> SELECT * FROM orders;
+
+ customer                     | time                            | id | items                       | total_price
+------------------------------+---------------------------------+----+-----------------------------+-------------
+          ('Kate', 'Burbela') | 2021-10-02 07:50:00.000000+0000 |  4 |                     ['Fit'] |         250
+          ('Kate', 'Burbela') | 2021-09-28 22:07:15.000000+0000 |  3 |   ['iPhone 12', 'Series 6'] |         950
+ ('Yekatierina', 'Churakova') | 2021-09-23 15:46:34.000000+0000 |  2 |             ['Motion Flow'] |         450
+ ('Yekatierina', 'Churakova') | 2021-09-08 11:21:59.000000+0000 |  1 | ['Galaxy Fold', 'Series 6'] |        1100
+   ('Catherine', 'Sidorenko') | 2021-10-01 20:12:22.000000+0000 |  7 |               ['iPhone 12'] |         600
+    ('Katerina', 'Soldatova') | 2021-10-24 09:32:56.000000+0000 |  6 |            ['Galaxy Watch'] |         300
+    ('Katerina', 'Soldatova') | 2021-10-12 16:18:04.000000+0000 |  5 |          ['Redmi', 'ThinQ'] |         700

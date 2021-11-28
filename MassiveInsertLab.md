@@ -56,7 +56,7 @@ finally:
     
 ![Alt text](https://github.com/Katushka-Induktivnosti/High-load-systems/blob/main/Mongo2.PNG?raw=true "Title")  
     
-    from cassandra.cluster import Cluster
+from cassandra.cluster import Cluster
 import time
 
 try:

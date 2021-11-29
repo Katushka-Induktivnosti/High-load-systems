@@ -1,0 +1,243 @@
+Task 1
+
+> db.test.mapReduce(function(){return emit(this.producer, this.model)}, function(key, values){return values.length;},{out: 'task1'});
+{
+	"result" : "task1",
+	"timeMillis" : 71,
+	"counts" : {
+		"input" : 9,
+		"emit" : 9,
+		"reduce" : 2,
+		"output" : 6
+	},
+	"ok" : 1
+}
+> db.task1.find();
+{ "_id" : "Apple", "value" : 2 }
+{ "_id" : "Huawei", "value" : "Fit" }
+{ "_id" : "LG", "value" : "ThinQ" }
+{ "_id" : "Samsung", "value" : 3 }
+{ "_id" : "Sony", "value" : "MotionFlow" }
+{ "_id" : "Xiaomi", "value" : "Redmi Note" }
+
+Task 2
+
+> db.test.mapReduce(function(){return emit(this.producer, this.price)}, function(key, values){return Array.sum(values);},{out: 'task2'});
+{
+	"result" : "task2",
+	"timeMillis" : 71,
+	"counts" : {
+		"input" : 9,
+		"emit" : 9,
+		"reduce" : 2,
+		"output" : 6
+	},
+	"ok" : 1
+}
+> db.task2.find();
+{ "_id" : "Apple", "value" : 950 }
+{ "_id" : "Huawei", "value" : 250 }
+{ "_id" : "LG", "value" : 400 }
+{ "_id" : "Samsung", "value" : 1650 }
+{ "_id" : "Sony", "value" : 450 }
+{ "_id" : "Xiaomi", "value" : 300 }
+
+Task 3
+
+> db.orders.mapReduce(function(){return emit(this.customer, this.price)}, function(key, values){return Array.sum(values.sum);},{out: 'task3'});
+{
+	"result" : "task3",
+	"timeMillis" : 73,
+	"counts" : {
+		"input" : 4,
+		"emit" : 4,
+		"reduce" : 0,
+		"output" : 4
+	},
+	"ok" : 1
+}
+> db.task3.find();
+{ "_id" : { "name" : "Cathrine", "surname" : "Sidorenko", "phone_numbers" : [ 987654, 456789 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 850 }
+{ "_id" : { "name" : "Kate", "surname" : "Soldatova", "phone_numbers" : [ 564738, 384756 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 750 }
+{ "_id" : { "name" : "Katerina", "surname" : "Burbela", "phone_numbers" : [ 102938, 19283 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 1000 }
+{ "_id" : { "name" : "Yekatierina", "surname" : "Churakova", "phone_numbers" : [ 132435, 687980 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 1150 }
+
+Task 4
+
+> db.orders.mapReduce(function(){return emit(this.customer, this.total_sum)}, function(key, values){return Array.sum(values);},{query: {$and: [{date : {$gte: new Date("2021-08-25")}}, {date : {$lte: new Date("2021-10-01")}}]}, out:'task4'});
+{
+	"result" : "task4",
+	"timeMillis" : 69,
+	"counts" : {
+		"input" : 2,
+		"emit" : 2,
+		"reduce" : 0,
+		"output" : 2
+	},
+	"ok" : 1
+}
+> db.task4.find()
+{ "_id" : { "name" : "Cathrine", "surname" : "Sidorenko", "phone_numbers" : [ 987654, 456789 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 850 }
+{ "_id" : { "name" : "Kate", "surname" : "Soldatova", "phone_numbers" : [ 564738, 384756 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 750 }
+
+Task 5
+
+db.orders.mapReduce(function(){let order = {total_sum: this.total_sum, count:1}; emit(1, order);}, function(key, values){let ord_total = {total_sum:0, count: 0}; for (i in values) {ord_total.count++; ord_total.total_sum+=values[i].total_sum;} return ord_total;},{finalize: function(key, value) {return value.total_sum/value.count;}, out:'task5'});
+{
+	"result" : "task5",
+	"timeMillis" : 62,
+	"counts" : {
+		"input" : 4,
+		"emit" : 4,
+		"reduce" : 1,
+		"output" : 1
+	},
+	"ok" : 1
+}
+> db.task5.find()
+{ "_id" : 1, "value" : 937.5 }
+
+Task 6
+
+> db.orders.mapReduce(function(){let order = {total_sum: this.total_sum, count:1}; emit(this.customer, order);}, function(key, values){let ord_total = {total_sum:0, count: 0}; for (i in values) {ord_total.count++; ord_total.total_sum+=values[i].total_sum;} return ord_total;},{finalize: function(key, value) {return value.total_sum/value.count;}, out:'task6'});
+{
+	"result" : "task6",
+	"timeMillis" : 73,
+	"counts" : {
+		"input" : 4,
+		"emit" : 4,
+		"reduce" : 0,
+		"output" : 4
+	},
+	"ok" : 1
+}
+> db.task6.find()
+{ "_id" : { "name" : "Cathrine", "surname" : "Sidorenko", "phone_numbers" : [ 987654, 456789 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 850 }
+{ "_id" : { "name" : "Kate", "surname" : "Soldatova", "phone_numbers" : [ 564738, 384756 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 750 }
+{ "_id" : { "name" : "Katerina", "surname" : "Burbela", "phone_numbers" : [ 102938, 19283 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 1000 }
+{ "_id" : { "name" : "Yekatierina", "surname" : "Churakova", "phone_numbers" : [ 132435, 687980 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 1150 }
+
+Task 7
+
+db.orders.mapReduce(function(){for (i in this.order_items){emit(this.order_items[i],1);}}, function(key, values){return Array.sum(values);},{out:'task7'});
+{
+	"result" : "task7",
+	"timeMillis" : 60,
+	"counts" : {
+		"input" : 4,
+		"emit" : 8,
+		"reduce" : 2,
+		"output" : 6
+	},
+	"ok" : 1
+}
+> db.task7.find()
+{ "_id" : "Fit", "value" : 1 }
+{ "_id" : "Galaxy Fold", "value" : 1 }
+{ "_id" : "MotionFlow", "value" : 1 }
+{ "_id" : "Redmi Note", "value" : 1 }
+{ "_id" : "ThinQ", "value" : 2 }
+{ "_id" : "iPhone12", "value" : 2 }
+
+Task 8
+
+> db.orders.mapReduce(function(){for (i in this.order_items){emit(this.order_items[i], this.customer.name+' '+this.customer.surname);}}, function(key, values){let customers = []; for (i in values){if (!customers.includes(values[i])){customers.push(values[i]);}}return customers.ToString;},{out:'task8'});
+{
+	"result" : "task8",
+	"timeMillis" : 64,
+	"counts" : {
+		"input" : 4,
+		"emit" : 8,
+		"reduce" : 2,
+		"output" : 6
+	},
+	"ok" : 1
+}
+> db.task8.find()
+{ "_id" : "Fit", "value" : "Cathrine Sidorenko" }
+{ "_id" : "Galaxy Fold", "value" : "Yekatierina Churakova" }
+{ "_id" : "MotionFlow", "value" : "Kate Soldatova" }
+{ "_id" : "Redmi Note", "value" : "Kate Soldatova" }
+{ "_id" : "ThinQ", "value" : null }
+{ "_id" : "iPhone12", "value" : null }
+
+Task 9
+
+> db.orders.mapReduce(function(){for (i in this.order_items){let customer = this.customer.name+' '+this.customer.surname; let item_user = {customer, item: this.order_items[i]}; emit(this.order_items[i]+' '+customer, item_user);}}, function(key, values){return values;},{out:'task91'});
+{
+	"result" : "task91",
+	"timeMillis" : 73,
+	"counts" : {
+		"input" : 4,
+		"emit" : 8,
+		"reduce" : 0,
+		"output" : 8
+	},
+	"ok" : 1
+}
+> db.task91.mapReduce(function(){if(this.value.length > 1){emit(this.value[0].item, this.value[0]);}}, function(key, values) {let customers = []; for (i in values){customers.push(values[i].customer);} return customers;},{out:'task9'});
+{
+	"result" : "task9",
+	"timeMillis" : 54,
+	"counts" : {
+		"input" : 8,
+		"emit" : 0,
+		"reduce" : 0,
+		"output" : 0
+	},
+	"ok" : 1
+}
+> db.task9.find()
+
+Task 10
+
+>db.orders.mapReduce(function(){this.order_items.forEach(item=>emit(item, this.order_number));}, function(key, values){return values.length;},{out:'len'});
+{
+	"result" : "len",
+	"timeMillis" : 108,
+	"counts" : {
+		"input" : 4,
+		"emit" : 8,
+		"reduce" : 2,
+		"output" : 6
+	},
+	"ok" : 1
+}
+> db.len.mapReduce(function(){emit('const', {item: this._id, bought: this.value})}, function(key,values) {let n=3; let topN=values.slice(0,n);values.slice(n).forEach((obj)=>{let num=obj.bought; let min = Math.min(topN.map((_)=>_.bought));if(num>min){let minIndex=topN.findIndex((val)=>val.bought===min);topN[minIndex]=obj;}});return topN.map(val=>val.item);},{out:'task10'});
+
+> db.orders.mapReduce(function(){this.order_items.forEach(item=>emit(item, this.order_number));}, function(key, values){return values.length;},{out:'len'});
+{
+	"result" : "len",
+	"timeMillis" : 82,
+	"counts" : {
+		"input" : 4,
+		"emit" : 8,
+		"reduce" : 2,
+		"output" : 6
+	},
+	"ok" : 1
+}
+> db.len.find().pretty()
+{ "_id" : "Fit", "value" : 1113 }
+{ "_id" : "Galaxy Fold", "value" : 1112 }
+{ "_id" : "MotionFlow", "value" : 1114 }
+{ "_id" : "Redmi Note", "value" : 1114 }
+{ "_id" : "ThinQ", "value" : 2 }
+{ "_id" : "iPhone12", "value" : 2 }
+
+Task 11
+
+db.orders.mapReduce(function(){emit(this.customer, this.total_sum)}, function(key, values){return Array.sum(values);},{query: {date : {$gt: new Date("2021-08-25")}}, out: {reduce:'task11'}});
+{
+	"result" : "task11",
+	"timeMillis" : 66,
+	"counts" : {
+		"input" : 1,
+		"emit" : 1,
+		"reduce" : 0,
+		"output" : 1
+	},
+	"ok" : 1
+}
+> db.task11.find()
+{ "_id" : { "name" : "Kate", "surname" : "Soldatova", "phone_numbers" : [ 564738, 384756 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 750 }

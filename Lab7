@@ -163,31 +163,25 @@ Task 8
 
 Task 9
 
-> db.orders.mapReduce(function(){for (i in this.order_items){let customer = this.customer.name+' '+this.customer.surname; let item_user = {customer, item: this.order_items[i]}; emit(this.order_items[i]+' '+customer, item_user);}}, function(key, values){return values;},{out:'task91'});
+> db.orders.mapReduce(function(){this.order_items.forEach(item => {let name = this.customer.name+' '+this.customer.surname; emit(item, name);});}, function(key, values){let orderCountByCustomer = {}; values.forEach( customer => {orderCountByCustomer[customer] = (orderCountByCustomer[customer] || 0)+1;}); return Object.keys(orderCountByCustomer).filter(username => orderCountByCustomer[username] >=2).ToString;},{out: 'task9'});
 {
-	"result" : "task91",
-	"timeMillis" : 73,
+	"result" : "task9",
+	"timeMillis" : 87,
 	"counts" : {
 		"input" : 4,
 		"emit" : 8,
-		"reduce" : 0,
-		"output" : 8
+		"reduce" : 2,
+		"output" : 6
 	},
 	"ok" : 1
 }
-> db.task91.mapReduce(function(){if(this.value.length > 1){emit(this.value[0].item, this.value[0]);}}, function(key, values) {let customers = []; for (i in values){customers.push(values[i].customer);} return customers;},{out:'task9'});
-{
-	"result" : "task9",
-	"timeMillis" : 54,
-	"counts" : {
-		"input" : 8,
-		"emit" : 0,
-		"reduce" : 0,
-		"output" : 0
-	},
-	"ok" : 1
-}
-> db.task9.find()
+> db.task9.find().pretty()
+{ "_id" : "Fit", "value" : "Cathrine Sidorenko" }
+{ "_id" : "Galaxy Fold", "value" : "Yekatierina Churakova" }
+{ "_id" : "MotionFlow", "value" : "Kate Soldatova" }
+{ "_id" : "Redmi Note", "value" : "Kate Soldatova" }
+{ "_id" : "ThinQ", "value" : null }
+{ "_id" : "iPhone12", "value" : null }
 
 Task 10
 
@@ -241,3 +235,4 @@ db.orders.mapReduce(function(){emit(this.customer, this.total_sum)}, function(ke
 }
 > db.task11.find()
 { "_id" : { "name" : "Kate", "surname" : "Soldatova", "phone_numbers" : [ 564738, 384756 ], "address" : "PTI, Peremohy ave. 27, Kyiv, UA" }, "value" : 750 }
+
